@@ -49,6 +49,8 @@ export const TIMING_CONFIG = {
   pageLoadTimeout: 45000,
   /** Timeout pour l'attente d'éléments (ms) */
   elementWaitTimeout: 20000,
+  /** Timeout pour l'affichage du formulaire de déclaration et de ses champs de production (ms) */
+  formWaitTimeout: 10000,
   /** Délai entre les actions (ms) */
   betweenActionsDelay: 1000,
   /** Slow motion pour le mode local (ms) */

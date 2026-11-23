@@ -31,6 +31,7 @@ export interface BotConfig {
   timing: {
     pageLoadTimeout: number;
     elementWaitTimeout: number;
+    formWaitTimeout: number;
     betweenActionsDelay: number;
   };
 }

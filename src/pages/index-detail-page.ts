@@ -58,7 +58,7 @@ export class IndexDetailPage {
   }
 
   /** Indique si le formulaire de saisie est affiché (ligne « Ouverte »). */
-  async isFormVisible(timeoutMs: number = this.config.timing.elementWaitTimeout): Promise<boolean> {
+  async isFormVisible(timeoutMs: number = this.config.timing.formWaitTimeout): Promise<boolean> {
     return this.form.first().waitFor({ state: 'visible', timeout: timeoutMs }).then(() => true).catch(() => false);
   }
 
@@ -102,7 +102,7 @@ export class IndexDetailPage {
   async isProductionEditable(): Promise<boolean> {
     await this.productionInputs.first().waitFor({
       state: 'visible',
-      timeout: this.config.timing.elementWaitTimeout
+      timeout: this.config.timing.formWaitTimeout
     });
     await this.page.waitForTimeout(300);
     return (await this.productionField.count()) > 0;

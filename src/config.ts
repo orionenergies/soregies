@@ -70,6 +70,7 @@ export function buildConfig(debugMode: boolean, submit: boolean): BotConfig {
     timing: {
       pageLoadTimeout: TIMING_CONFIG.pageLoadTimeout,
       elementWaitTimeout: TIMING_CONFIG.elementWaitTimeout,
+      formWaitTimeout: TIMING_CONFIG.formWaitTimeout,
       betweenActionsDelay: TIMING_CONFIG.betweenActionsDelay
     }
   };
