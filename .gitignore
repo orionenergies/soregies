@@ -1,0 +1,17 @@
+# Fichiers générés et temporaires
+pdfs/
+screenshots/
+downloads/
+test-results/
+playwright-report/
+bot-results.json
+node_modules/
+dist/
+.env
+.session/
+.temp/
+.DS_Store
+
+# Documentation spécifique (non incluse dans le template)
+documentation/
+

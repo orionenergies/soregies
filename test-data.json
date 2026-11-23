@@ -1,0 +1,13 @@
+{
+  "submit": false,
+  "debugMode": true,
+  "configuration": {
+    "invoice": {
+      "spv": "SPV Exemple",
+      "reference": "D100200",
+      "startDate": "2026-10-01",
+      "kwhProduction": 250,
+      "baseRecordUrl": "https://airtable.com/appnNLRZmcvhEBvij/tblg1ACJ8hrLI3unZ/reccpFpNDTYOJCb8W"
+    }
+  }
+}

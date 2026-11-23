@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Script de nettoyage des serveurs
+# Arrête tous les processus serveur et libère les ports 3000 et 3001
+
+echo "💀 === NETTOYAGE DES SERVEURS ==="
+echo ""
+
+# Arrêter les processus tsx watch (mode développement)
+echo "1️⃣ Arrêt des processus tsx watch..."
+pkill -9 -f "tsx watch" 2>/dev/null && echo "✅ tsx watch arrêtés" || echo "ℹ️ Aucun tsx watch en cours"
+
+# Arrêter les processus node server.js (bot principal)
+echo ""
+echo "2️⃣ Arrêt des processus node server.js (bot principal)..."
+pkill -9 -f "node dist/server.js" 2>/dev/null && echo "✅ node dist/server.js arrêtés" || echo "ℹ️ Aucun node dist/server.js en cours"
+
+# Libérer le port 3000 (bot principal)
+echo ""
+echo "3️⃣ Libération du port 3000 (bot principal)..."
+lsof -ti :3000 | xargs kill -9 2>/dev/null && echo "✅ Port 3000 libéré" || echo "ℹ️ Port 3000 déjà libre"
+
+# Vérification finale des ports
+echo ""
+echo "4️⃣ Vérification finale..."
+echo ""
+
+if lsof -i :3000 2>/dev/null; then
+    echo "⚠️ Le port 3000 est encore utilisé !"
+else
+    echo "✅ Port 3000 complètement libre !"
+fi
+
+# Vérifier les processus serveur restants
+echo ""
+echo "📊 Processus serveur restants :"
+ps aux | grep -E "(tsx|node.*server)" | grep -v grep | grep -v "kill_servers" || echo "✅ Aucun processus serveur en cours"
+
+# Instructions pour l'utilisateur
+echo ""
+echo "✨ Nettoyage terminé !"
+echo "💡 Vous pouvez maintenant lancer:"
+echo "  ./scripts/run-fill-bot.sh"
+
