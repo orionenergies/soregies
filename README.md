@@ -16,14 +16,15 @@ facture, IBAN, documents, etc.) n'est pas porté.
 | 1 | Choix du profil dont le `.fullName` contient `spv` (insensible à la casse) sur `/profiles` |
 | 2 | Recherche du contrat dans « Mes index » (`reference` = n° de dossier, dossier lié `A/B` ou code PRM) |
 | 3 | Sélection de la ligne d'index de la période (`startDate`, même mois/année que « Date début », ligne « Ouverte » prioritaire) |
-| 4 | Remplissage du formulaire « Saisir ma production » : date de relevé = `startDate` + 1 mois, puis `kwhProduction` dans le dernier champ de production (Soregies en déduit le nouvel index) |
+| 4 | Remplissage du formulaire « Saisir ma production » : date de relevé = 1er jour du mois suivant `startDate`, puis `kwhProduction` dans le dernier champ de production |
 | 5 | Contrôle de la production affichée (± 10 kWh) puis, si `submit: true`, « Valider la production » + confirmation |
 
 Particularités de Soregies (SPA Angular, API Cognito) :
 
 - les jetons sont en `sessionStorage` : **aucune réutilisation de session**, le bot se reconnecte à chaque run ;
 - l'URL `/home/index` est atteinte par navigation directe, avec repli sur le menu de l'application ;
-- pour un index lié (deux dossiers), les champs de production sont en lecture seule : le bot saisit alors le nouvel index (ancien index + `kwhProduction`) ;
+- la déclaration se fait uniquement par production : il n'existe ni déclaration par index ni production anniversaire (les champs `startIndex` et `prodAnniversaire` du JSON EDF OA sont ignorés) ;
+- pour des dossiers liés (deux dossiers), les champs de production sont en lecture seule : le bot passe alors par le champ de cumul de Soregies pour obtenir la production demandée ;
 - les appels API `/billing-system/contacts` et `/billing-system/index-events` sont surveillés pour détecter
   les erreurs plateforme (HTTP ≥ 500, 4xx sur `/validate`).
 
@@ -41,7 +42,6 @@ Même JSON que le bot EDF OA :
       "reference": "D100200",
       "startDate": "2026-10-01",
       "kwhProduction": 250,
-      "startIndex": 1000,
       "baseRecordUrl": "https://airtable.com/appXXX/tblYYY/recZZZ"
     }
   }
@@ -55,10 +55,8 @@ Même JSON que le bot EDF OA :
 | `spv` | nom du profil producteur à sélectionner |
 | `reference` | n° de dossier (`contractLineId`, y compris dossier lié `A/B`) ou code PRM |
 | `startDate` | identifie la période (mois + année de « Date début ») |
-| `endDate` | accepté pour compatibilité, ignoré (la date de relevé est `startDate` + 1 mois ; si elle est hors des bornes du champ, la date du jour est conservée avec une alerte) |
+| `endDate` | accepté pour compatibilité, ignoré (la date de relevé est le 1er jour du mois suivant `startDate` ; si elle est hors des bornes du champ, la date du jour est conservée avec une alerte) |
 | `kwhProduction` | production à déclarer (< 1 → `PRODUCTION_NULL`) |
-| `startIndex` | index Airtable, comparé à l'« Ancien index » Soregies (simple alerte si différent) |
-| `prodAnniversaire` | accepté pour compatibilité, ignoré |
 | `baseRecordUrl` | simple écho dans la réponse |
 
 ## Sortie
@@ -67,8 +65,7 @@ HTTP 200 pour `success` et `issue`, HTTP 500 pour `error`. Champs : `runId`, `re
 `executionTimeMs`, `logs`, `spv`, `baseRecordUrl`, `businessDetails`, plus `issue` (`code`, `source`, `detail`)
 ou `error` (`source`, `code`) et `debug` (`stepName`, `action`, `screenshotBase64`).
 
-`businessDetails` : `{ "useCase": "declaration", "methodeDeclaration": "index", "statusFacture": "valide", "startIndexSoregies": 1000 }`
-(`startIndexSoregies` remplace `startIndexEdfoa`).
+`businessDetails` : `{ "useCase": "declaration", "statusFacture": "valide" }` (`statusFacture` n'est renseigné qu'après une soumission réussie).
 
 | Résultat | Code | Cas |
 |----------|------|-----|
@@ -100,7 +97,7 @@ npm run test:e2e-mock  # tests bout en bout contre l'application réelle avec un
 ```
 
 Les tests `e2e-mock` chargent le vrai front Soregies et interceptent son API (`tests/e2e-mock/mock-soregies-api.ts`) :
-14 scénarios (succès, multi-profils, PRM, index lié, alertes, `submit=false`, chaque `issue` et `error`).
+14 scénarios (succès, multi-profils, PRM, dossiers liés, alerte de date, `submit=false`, chaque `issue` et `error`).
 Le flux complet a aussi été vérifié sur le site réel avec `submit: false` (login, profil, recherche, ligne ouverte,
 formulaire rempli, cas `BTA_NOT_FOUND` et `INVOICE_NOT_FOUND`). La soumission réelle (`submit: true`) n'a pas été
 exécutée pour ne pas créer de saisie en production ; elle n'est couverte que par l'API simulée.

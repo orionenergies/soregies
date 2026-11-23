@@ -17,10 +17,8 @@ export interface ValidationErrorItem {
  * - reference : numéro de dossier / contrat ou code PRM (colonnes « Dossier » / « Contrat » de « Mes index »)
  * - spv : nom du profil producteur (page « Choix du profil »)
  * - startDate : début de période — sert à identifier la ligne d'index (colonne « Date début », mois + année)
- * - endDate : accepté pour compatibilité, ignoré (date de relevé = startDate + 1 mois)
+ * - endDate : accepté pour compatibilité, ignoré (date de relevé = 1er jour du mois suivant startDate)
  * - kwhProduction : production à déclarer (saisie dans le dernier champ du formulaire)
- * - startIndex : index de début Airtable (comparé à l'ancien index Soregies, simple alerte)
- * - prodAnniversaire : accepté pour compatibilité, ignoré (pas de notion de veille anniversaire sur Soregies)
  */
 export interface SoregiesDeclarationConfig {
   reference: string;
@@ -28,7 +26,5 @@ export interface SoregiesDeclarationConfig {
   startDate: string;
   endDate?: string;
   kwhProduction?: number;   // Requis pour la déclaration (vérifié dans bot.ts)
-  startIndex?: number;
-  prodAnniversaire?: number;
   baseRecordUrl?: string;   // Optionnel — URL Airtable du record déclencheur, simple écho vers la réponse (non utilisé par le bot)
 }

@@ -48,8 +48,6 @@ interface InvoiceData {
   startDate?: string;
   endDate?: string;
   kwhProduction?: number;
-  startIndex?: number | string | null; // Peut être nombre, chaîne (à convertir) ou null
-  prodAnniversaire?: number | string | null; // Accepté pour compatibilité avec le JSON EDF OA, ignoré par Soregies
   baseRecordUrl?: string; // URL Airtable du record déclencheur — simple écho vers la réponse
 }
 
@@ -115,62 +113,6 @@ function validateInvoiceConfig(configuration: unknown): {
     }
   }
   
-  // Champs optionnels avec validation de type
-  // Les valeurs vides (null, chaîne vide, undefined) sont considérées comme non existantes
-  let startIndex: number | undefined = undefined;
-  if (inv.startIndex !== undefined && inv.startIndex !== null) {
-    // Si c'est une chaîne, essayer de la convertir en nombre
-    if (typeof inv.startIndex === 'string') {
-      const trimmed = inv.startIndex.trim();
-      if (trimmed === '') {
-        // Chaîne vide = non existant
-        startIndex = undefined;
-      } else {
-        const parsed = Number(trimmed);
-        if (isNaN(parsed) || parsed < 0) {
-          errors.push({ field: 'invoice.startIndex', message: 'Nombre >= 0 requis' });
-        } else {
-          startIndex = parsed;
-        }
-      }
-    } else if (typeof inv.startIndex === 'number') {
-      if (inv.startIndex < 0) {
-    errors.push({ field: 'invoice.startIndex', message: 'Nombre >= 0 requis' });
-      } else {
-        startIndex = inv.startIndex;
-      }
-    } else {
-      errors.push({ field: 'invoice.startIndex', message: 'Doit être un nombre' });
-    }
-  }
-
-  let prodAnniversaire: number | undefined = undefined;
-  if (inv.prodAnniversaire !== undefined && inv.prodAnniversaire !== null) {
-    // Si c'est une chaîne, essayer de la convertir en nombre
-    if (typeof inv.prodAnniversaire === 'string') {
-      const trimmed = inv.prodAnniversaire.trim();
-      if (trimmed === '') {
-        // Chaîne vide = non existant
-        prodAnniversaire = undefined;
-      } else {
-        const parsed = Number(trimmed);
-        if (isNaN(parsed) || parsed < 0) {
-          errors.push({ field: 'invoice.prodAnniversaire', message: 'Nombre >= 0 requis' });
-        } else {
-          prodAnniversaire = parsed;
-        }
-      }
-    } else if (typeof inv.prodAnniversaire === 'number') {
-      if (inv.prodAnniversaire < 0) {
-    errors.push({ field: 'invoice.prodAnniversaire', message: 'Nombre >= 0 requis' });
-      } else {
-        prodAnniversaire = inv.prodAnniversaire;
-      }
-    } else {
-      errors.push({ field: 'invoice.prodAnniversaire', message: 'Doit être un nombre' });
-    }
-  }
-
   // baseRecordUrl — simple écho (propagation pure), aucune validation bloquante
   let baseRecordUrl: string | undefined = undefined;
   if (typeof inv.baseRecordUrl === 'string' && inv.baseRecordUrl.trim()) {
@@ -192,8 +134,6 @@ function validateInvoiceConfig(configuration: unknown): {
       startDate: normalizedStartDate, // Date normalisée en YYYY-MM-DD
       ...(normalizedEndDate !== undefined && { endDate: normalizedEndDate }),
       ...(kwhProduction !== undefined && { kwhProduction }),
-      ...(startIndex !== undefined && { startIndex }),
-      ...(prodAnniversaire !== undefined && { prodAnniversaire }),
       ...(baseRecordUrl !== undefined && { baseRecordUrl })
     },
     errors: []

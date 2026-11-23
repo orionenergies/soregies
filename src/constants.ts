@@ -1,5 +1,5 @@
 /**
- * Constantes centralisées du bot Soregies - Déclaration de production (saisie d'index)
+ * Constantes centralisées du bot Soregies - Déclaration de production (déclaration de production)
  * Rassemble toutes les valeurs constantes du projet (timing, URLs, configuration GCP, etc.)
  */
 
@@ -114,7 +114,7 @@ export const AUTOMATION_CONFIG = {
 export const BUSINESS_RULES = {
   /** Tolérance absolue acceptée pour la vérification de quantité au récapitulatif (en kWh) */
   recapQuantityToleranceKwh: 10, // ±10 kWh de tolérance par défaut
-  /** Production minimale acceptée par Soregies pour une saisie d'index (kWh) */
+  /** Production minimale acceptée par Soregies pour une déclaration de production (kWh) */
   minProductionKwh: 1
 } as const;
 

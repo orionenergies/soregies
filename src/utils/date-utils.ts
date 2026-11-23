@@ -36,15 +36,11 @@ export function normalizeReference(value: string): string {
 }
 
 /**
- * Ajoute `months` mois à une date ISO en conservant le jour, ramené au dernier jour du mois cible
- * s'il n'existe pas (ex: 2026-01-31 + 1 mois = 2026-02-28).
+ * Premier jour du mois suivant la date donnée (ex: 2026-10-15 -> 2026-11-01, 2026-12-31 -> 2027-01-01).
  */
-export function addMonths(isoDate: string, months: number): string {
-  const [year, month, day] = isoDate.split('-').map(Number) as [number, number, number];
-  const target = new Date(Date.UTC(year, month - 1 + months, 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
-  const resultDay = Math.min(day, lastDay);
-  const mm = String(target.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(resultDay).padStart(2, '0');
-  return `${target.getUTCFullYear()}-${mm}-${dd}`;
+export function firstDayOfNextMonth(isoDate: string): string {
+  const [year, month] = isoDate.split('-').map(Number) as [number, number];
+  const next = new Date(Date.UTC(year, month, 1));
+  const mm = String(next.getUTCMonth() + 1).padStart(2, '0');
+  return `${next.getUTCFullYear()}-${mm}-01`;
 }

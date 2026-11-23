@@ -2,7 +2,7 @@ import { Page, Locator } from 'playwright';
 import { BotConfig } from '../config';
 import { Logger } from '../utils/logger';
 
-/** Résultat de la soumission du formulaire de saisie d'index. */
+/** Résultat de la soumission du formulaire de déclaration de production. */
 export type SubmissionOutcome =
   | { kind: 'success'; message: string }
   | { kind: 'error'; message: string };
@@ -58,7 +58,7 @@ export class IndexDetailPage {
   }
 
   /** Indique si le formulaire de saisie est affiché (ligne « Ouverte »). */
-  async isFormVisible(timeoutMs: number = 5000): Promise<boolean> {
+  async isFormVisible(timeoutMs: number = this.config.timing.elementWaitTimeout): Promise<boolean> {
     return this.form.first().waitFor({ state: 'visible', timeout: timeoutMs }).then(() => true).catch(() => false);
   }
 
@@ -94,9 +94,18 @@ export class IndexDetailPage {
     await this.page.waitForTimeout(500);
   }
 
-  /** Indique si la production est saisissable (champ éditable) ; en lecture seule pour un index lié. */
-  async isProductionEditable(timeoutMs: number = 3000): Promise<boolean> {
-    return this.productionField.waitFor({ state: 'visible', timeout: timeoutMs }).then(() => true).catch(() => false);
+  /**
+   * Indique si la production est saisissable (champ éditable) ; elle est en lecture seule pour des
+   * dossiers liés. Attend d'abord l'affichage des champs de production pour ne pas confondre un
+   * chargement lent avec un champ en lecture seule.
+   */
+  async isProductionEditable(): Promise<boolean> {
+    await this.productionInputs.first().waitFor({
+      state: 'visible',
+      timeout: this.config.timing.elementWaitTimeout
+    });
+    await this.page.waitForTimeout(300);
+    return (await this.productionField.count()) > 0;
   }
 
   /** Renseigne le nouvel index (cumul du compteur) ; la production est alors recalculée par Soregies. */
@@ -143,7 +152,7 @@ export class IndexDetailPage {
 
   /**
    * Clique sur « Valider la production » puis confirme la boîte de dialogue, et attend le résultat :
-   * - succès : redirection vers /home/index ou alerte verte « Saisie d'index effectuée »
+   * - succès : redirection vers /home/index ou alerte verte « Saisie de production effectuée »
    * - échec  : alerte rouge (message `flash` de l'API ou erreur par défaut)
    */
   async submitAndConfirm(): Promise<SubmissionOutcome> {
@@ -170,7 +179,7 @@ export class IndexDetailPage {
 
       // L'application navigue vers la liste après une saisie réussie ; l'alerte peut être éphémère.
       if (/\/home\/index\/?$/.test(new URL(this.page.url()).pathname)) {
-        return { kind: 'success', message: 'Saisie d\'index effectuée' };
+        return { kind: 'success', message: 'Déclaration de production effectuée' };
       }
 
       await this.page.waitForTimeout(250);

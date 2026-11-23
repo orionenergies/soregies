@@ -23,13 +23,11 @@ export interface IndexRow {
 }
 
 /**
- * Résultat du step de remplissage du formulaire de saisie d'index
+ * Résultat du step de remplissage du formulaire « Saisir ma production »
  */
 export interface FormFillResult extends StepResult {
   data: {
-    methodeDeclaration: 'index';
-    startIndexSoregies: number | null;
-    newIndex: number | null;
+    statementDate: string | null;
   };
 }
 

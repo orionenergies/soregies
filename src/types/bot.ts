@@ -42,15 +42,12 @@ export interface DebugInfo {
  * Détails métier spécifiques au bot Soregies.
  * Contient toutes les données opérationnelles et de monitoring.
  *
- * Soregies ne propose que la saisie d'index : `methodeDeclaration` vaut toujours 'index'
- * (le nouvel index est calculé à partir de l'ancien index + kwhProduction).
+ * Soregies ne propose que la déclaration de production (pas de déclaration par index ni de
+ * production anniversaire).
  */
 export interface SoregiesBusinessDetails {
   useCase?: 'declaration';
-  methodeDeclaration?: 'index';
   statusFacture?: string;
-  /** Ancien index lu sur Soregies (ou index Airtable si l'ancien index est vide) */
-  startIndexSoregies?: number;
 }
 
 export interface BotResult {

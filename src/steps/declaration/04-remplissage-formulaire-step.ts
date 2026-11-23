@@ -7,15 +7,15 @@ import { SoregiesDeclarationConfig } from '../../validation';
 import { BUSINESS_RULES } from '../../constants';
 import { IndexDetailPage } from '../../pages/index-detail-page';
 import { HomePage } from '../../pages/home-page';
-import { compareStartIndex, computeNewIndex, resolveStatementDate } from '../../utils/index-calc';
-import { addMonths } from '../../utils/date-utils';
+import { computeNewIndex, resolveStatementDate } from '../../utils/index-calc';
+import { firstDayOfNextMonth } from '../../utils/date-utils';
 
 /**
  * Step Déclaration : remplissage du formulaire « Saisir ma production » de Soregies.
  * La ligne d'index a déjà été ouverte par le routeur (step 3).
  *
- * Renseigne la date de relevé (startDate + 1 mois, si acceptée par le champ) puis la production
- * (kwhProduction) dans le dernier champ du formulaire. Soregies en déduit le nouvel index.
+ * Renseigne la date de relevé (1er jour du mois suivant startDate, si acceptée par le champ) puis
+ * la production (kwhProduction) dans le dernier champ du formulaire.
  */
 export class RemplissageFormulaireStep {
   private readonly page: Page;
@@ -35,9 +35,9 @@ export class RemplissageFormulaireStep {
     try {
       Logger.step(stepNumber, stepName);
 
-      const { kwhProduction, startIndex: airtableStartIndex, startDate } = this.declarationConfig;
+      const { kwhProduction, startDate } = this.declarationConfig;
       if (kwhProduction === undefined || kwhProduction === null) {
-        throw new Error('kwhProduction est requis pour remplir le formulaire de saisie d\'index');
+        throw new Error('kwhProduction est requis pour remplir le formulaire de déclaration de production');
       }
 
       const detailPage = new IndexDetailPage(this.page, this.config);
@@ -46,33 +46,27 @@ export class RemplissageFormulaireStep {
 
       if (!(await detailPage.isFormVisible())) {
         throw new InvoiceNotFoundIssue(
-          'Le formulaire de saisie d\'index n\'est pas disponible pour cette ligne (index déjà saisi ou saisie non ouverte)'
+          'Le formulaire de déclaration de production n\'est pas disponible pour cette ligne (production déjà déclarée ou saisie non ouverte)'
         );
       }
       Logger.action('Formulaire "Saisir ma production" détecté');
 
-      // Soregies impose une production >= 1 kWh et un nouvel index strictement supérieur à l'ancien.
+      // Soregies impose une production d'au moins 1 kWh.
       if (kwhProduction < BUSINESS_RULES.minProductionKwh) {
         throw new ProductionNullLitigation(
           'kwhProduction',
           kwhProduction,
           `La plateforme Soregies n'accepte pas la valeur ${kwhProduction} pour la production ` +
-          `(minimum ${BUSINESS_RULES.minProductionKwh} kWh, nouvel index strictement supérieur à l'ancien). ` +
+          `(minimum ${BUSINESS_RULES.minProductionKwh} kWh). ` +
           'La déclaration nécessite une déclaration manuelle.'
         );
       }
 
-      const soregiesStartIndex = await detailPage.readOldIndex();
-      Logger.fieldSuccess(
-        `Ancien index Soregies lu: ${soregiesStartIndex ?? '(illisible)'}` +
-        (airtableStartIndex !== undefined ? `, Index Airtable: ${airtableStartIndex}` : '')
-      );
-
-      const alerts = compareStartIndex(soregiesStartIndex, airtableStartIndex);
+      const alerts: string[] = [];
 
       const minDate = await detailPage.dateInput.getAttribute('min');
       const maxDate = await detailPage.dateInput.getAttribute('max');
-      const statementDate = resolveStatementDate(addMonths(startDate, 1), minDate, maxDate);
+      const statementDate = resolveStatementDate(firstDayOfNextMonth(startDate), minDate, maxDate);
       if (statementDate.alert) alerts.push(statementDate.alert);
 
       if (statementDate.date) {
@@ -86,32 +80,26 @@ export class RemplissageFormulaireStep {
         await detailPage.fillProduction(kwhProduction);
         Logger.fieldSuccess(`Production: ${kwhProduction} kWh`);
       } else {
-        // Index lié (deux dossiers) : les champs de production sont en lecture seule, calculés
-        // à partir du nouvel index (somme des anciens index + production).
-        if (soregiesStartIndex === null) {
+        // Production liée à deux dossiers : les champs de production sont en lecture seule et
+        // calculés par Soregies à partir de l'unique champ éditable (somme des anciens compteurs + production).
+        const previousTotal = await detailPage.readOldIndex();
+        if (previousTotal === null) {
           throw new Error(
-            'Les champs de production sont en lecture seule (index lié) et l\'ancien index Soregies est illisible : ' +
-            'impossible de calculer le nouvel index.'
+            'Les champs de production sont en lecture seule (dossiers liés) et la valeur de référence Soregies ' +
+            'est illisible : impossible de saisir la production.'
           );
         }
-        const computedIndex = computeNewIndex(soregiesStartIndex, kwhProduction);
-        await detailPage.fillNewIndex(computedIndex);
-        Logger.fieldSuccess(
-          `Nouvel index: ${computedIndex} (ancien index ${soregiesStartIndex} + production ${kwhProduction}, production en lecture seule)`
-        );
+        await detailPage.fillNewIndex(computeNewIndex(previousTotal, kwhProduction));
+        Logger.fieldSuccess(`Production: ${kwhProduction} kWh (saisie via le champ de cumul, dossiers liés)`);
       }
-      const newIndex = await detailPage.readNewIndex();
-      Logger.fieldSuccess(`Nouvel index Soregies: ${newIndex ?? 'illisible'}`);
 
       alerts.forEach(alert => Logger.warn(alert));
 
       const result: FormFillResult = {
         success: true,
-        message: 'Formulaire de saisie d\'index rempli avec succès',
+        message: 'Formulaire de déclaration de production rempli avec succès',
         data: {
-          methodeDeclaration: 'index',
-          startIndexSoregies: soregiesStartIndex,
-          newIndex
+          statementDate: statementDate.date
         }
       };
       if (alerts.length > 0) result.alerts = alerts;

@@ -97,15 +97,13 @@ test.describe('Bot Soregies - déclaration de production (API simulée)', () => 
     const { result, validations } = await runWithScenario(baseScenario(), formData({}));
 
     expect(result.result).toBe('success');
-    expect(result.message).toBe('Déclaration soumise avec succès. L\'index a été enregistré sur Soregies.');
+    expect(result.message).toBe('Déclaration soumise avec succès. La production a été enregistrée sur Soregies.');
     expect(result.spv).toBe('SOLARION 11');
     expect(result.baseRecordUrl).toBe('https://airtable.com/appXXX/tblYYY/recZZZ');
     expect(result.runId).toMatch(/^bot-soregies-\d{8}-\d{6}-[a-z0-9]{4}$/);
     expect(result.businessDetails).toEqual({
       useCase: 'declaration',
-      methodeDeclaration: 'index',
-      statusFacture: 'valide',
-      startIndexSoregies: 1000
+      statusFacture: 'valide'
     });
     expect(result.logs).toContain('AUTHENTIFICATION');
 
@@ -149,17 +147,20 @@ test.describe('Bot Soregies - déclaration de production (API simulée)', () => 
     const { result, validations } = await runWithScenario(scenario, formData({ reference: 'D100201' }));
 
     expect(result.result).toBe('success');
-    expect(result.businessDetails.startIndexSoregies).toBe(1500);
     expect(validations[0]).toMatchObject({ id: 701, linkedIndexId: 702 });
     const total = Number(validations[0]?.['production']) + Number(validations[0]?.['linkedIndexProduction']);
     expect(Math.abs(total - 250)).toBeLessThanOrEqual(1);
   });
 
-  test('succès avec alerte : startIndex Airtable différent de l\'ancien index Soregies', async () => {
-    const { result } = await runWithScenario(baseScenario(), formData({ startIndex: 900 }));
+  test('succès avec alerte : date de relevé (1er du mois suivant) postérieure à aujourd\'hui', async () => {
+    const monthStart = `${isoToday(0).slice(0, 7)}-01`;
+    const scenario = baseScenario({ events: [event({ id: 801, profileId: 1, fromDate: monthStart })] });
+
+    const { result, validations } = await runWithScenario(scenario, formData({ startDate: monthStart }));
 
     expect(result.result).toBe('success');
-    expect(result.message).toContain('Index de début Soregies (1000) différent de l\'index Airtable (900)');
+    expect(result.message).toContain('hors des bornes acceptées par Soregies');
+    expect(validations[0]).toMatchObject({ id: 801, indexDate: isoToday(0) });
   });
 
   test('submit=false : formulaire prêt, aucune soumission', async () => {

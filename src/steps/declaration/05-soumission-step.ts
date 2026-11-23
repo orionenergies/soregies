@@ -10,7 +10,7 @@ import { BrowserManager } from '../../utils/browser-manager';
 import { isWithinTolerance } from '../../utils/index-calc';
 
 /**
- * Step Déclaration : vérification et soumission de la saisie d'index.
+ * Step Déclaration : vérification et soumission de la déclaration de production.
  *
  * Soregies n'a pas de page de récapitulatif : le contrôle de cohérence (production affichée vs
  * kwhProduction, tolérance ±10 kWh) est donc fait sur le formulaire, juste avant la confirmation
@@ -86,7 +86,7 @@ export class SoumissionStep {
 
       return {
         success: true,
-        message: 'Déclaration soumise avec succès. L\'index a été enregistré sur Soregies.',
+        message: 'Déclaration soumise avec succès. La production a été enregistrée sur Soregies.',
         statusFacture: 'valide',
         data: { submitted: true }
       };

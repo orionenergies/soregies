@@ -7,7 +7,7 @@
  * - Step 1 : choix du profil producteur (SPV)
  * - Step 2 : recherche du contrat (dossier / PRM)
  * - Step 3 : détection de la ligne d'index (période + état « Ouverte »)
- * - Step 4 : remplissage du formulaire (date de relevé + nouvel index)
+ * - Step 4 : remplissage du formulaire (date de relevé + production)
  * - Step 5 : vérification de la production + validation
  */
 
@@ -123,7 +123,6 @@ export class Bot {
     });
 
     const step4Alerts = step4Result.alerts;
-    const startIndexSoregies = step4Result.data.startIndexSoregies ?? undefined;
 
     // Step 5 : Vérification et validation de la production
     const submissionResult: StepResult = await trackAction(this.browserManager!, 'Validation de la production', async () => {
@@ -146,7 +145,6 @@ export class Bot {
     });
 
     const businessDetails = ResultBuilder.buildDeclarationBusinessDetails({
-      startIndexSoregies,
       statusFacture: submissionResult.statusFacture,
     });
 

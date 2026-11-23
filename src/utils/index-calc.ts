@@ -1,25 +1,6 @@
 /**
- * Calculs purs liés à la saisie d'index Soregies (testables sans navigateur).
+ * Calculs purs liés à la déclaration de production Soregies (testables sans navigateur).
  */
-
-/**
- * Alertes informatives sur l'ancien index (la production est saisie directement, l'ancien index
- * n'est plus utilisé pour calculer le nouvel index) :
- * - ancien index Soregies illisible ;
- * - ancien index Soregies différent de l'index de début Airtable (`startIndex`).
- */
-export function compareStartIndex(
-  soregiesStartIndex: number | null,
-  airtableStartIndex: number | undefined
-): string[] {
-  if (soregiesStartIndex === null) {
-    return ['Ancien index Soregies illisible, comparaison avec l\'index Airtable impossible'];
-  }
-  if (airtableStartIndex !== undefined && soregiesStartIndex !== airtableStartIndex) {
-    return [`Index de début Soregies (${soregiesStartIndex}) différent de l'index Airtable (${airtableStartIndex})`];
-  }
-  return [];
-}
 
 /** Nouvel index = ancien index + production, arrondi à 3 décimales pour éviter les artefacts flottants. */
 export function computeNewIndex(startIndex: number, kwhProduction: number): number {
@@ -32,7 +13,7 @@ export interface StatementDateResolution {
 }
 
 /**
- * Valide la date de relevé à saisir (startDate + 1 mois) par rapport aux bornes du champ.
+ * Valide la date de relevé à saisir (1er jour du mois suivant startDate) par rapport aux bornes du champ.
  * - date absente : la date par défaut de Soregies (aujourd'hui) est conservée (`date: null`) ;
  * - date comprise entre les bornes `min` / `max` du champ : utilisée ;
  * - sinon : date du jour conservée, avec une alerte.

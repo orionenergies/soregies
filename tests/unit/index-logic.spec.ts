@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { IndexRow } from '../../src/types';
 import { selectIndexRow, rowMatchesReference, isOpenStatus } from '../../src/utils/index-matcher';
-import { compareStartIndex, computeNewIndex, resolveStatementDate, isWithinTolerance } from '../../src/utils/index-calc';
-import { normalizeReference, monthKey, addMonths } from '../../src/utils/date-utils';
+import { computeNewIndex, resolveStatementDate, isWithinTolerance } from '../../src/utils/index-calc';
+import { normalizeReference, monthKey, firstDayOfNextMonth } from '../../src/utils/date-utils';
 import { parseLocalizedNumber } from '../../src/pages/index-detail-page';
 
 const row = (overrides: Partial<IndexRow>): IndexRow => ({
@@ -48,13 +48,6 @@ test.describe('index-matcher', () => {
 });
 
 test.describe('index-calc', () => {
-  test('compareStartIndex : alerte seulement si illisible ou différent', () => {
-    expect(compareStartIndex(1000, 1000)).toEqual([]);
-    expect(compareStartIndex(1000, undefined)).toEqual([]);
-    expect(compareStartIndex(1000, 900)).toHaveLength(1);
-    expect(compareStartIndex(null, 900)).toHaveLength(1);
-  });
-
   test('computeNewIndex évite les artefacts flottants', () => {
     expect(computeNewIndex(1000, 250)).toBe(1250);
     expect(computeNewIndex(0.1, 0.2)).toBe(0.3);
@@ -80,11 +73,11 @@ test.describe('utilitaires', () => {
     expect(monthKey('2026-10-15')).toBe(monthKey('2026-10-01'));
   });
 
-  test('addMonths : +1 mois, jour ramené en fin de mois, changement d\'année', () => {
-    expect(addMonths('2026-10-01', 1)).toBe('2026-11-01');
-    expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
-    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
-    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
+  test('firstDayOfNextMonth : toujours le 1er du mois suivant', () => {
+    expect(firstDayOfNextMonth('2026-10-01')).toBe('2026-11-01');
+    expect(firstDayOfNextMonth('2026-10-15')).toBe('2026-11-01');
+    expect(firstDayOfNextMonth('2026-01-31')).toBe('2026-02-01');
+    expect(firstDayOfNextMonth('2026-12-31')).toBe('2027-01-01');
   });
 
   test('parseLocalizedNumber', () => {

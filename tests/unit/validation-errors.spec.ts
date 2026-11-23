@@ -23,20 +23,20 @@ const validInput = (invoice: Record<string, unknown> = {}): BotFormData =>
         reference: 'D100200',
         startDate: '2026-10-01',
         kwhProduction: 250,
-        startIndex: 1000,
         ...invoice
       }
     }
   }) as unknown as BotFormData;
 
 test.describe('validation', () => {
-  test('accepte le JSON d\'entrée EDF OA (prodAnniversaire ignoré)', () => {
-    const input = validInput({ prodAnniversaire: 12, baseRecordUrl: 'https://airtable.com/x' });
+  test('accepte le JSON d\'entrée EDF OA : champs index / production anniversaire ignorés', () => {
+    const input = validInput({ startIndex: 1000, prodAnniversaire: 12, baseRecordUrl: 'https://airtable.com/x' });
     expect(() => validateInput(input)).not.toThrow();
     const config = getSoregiesDeclarationConfig(input);
     expect(config.reference).toBe('D100200');
     expect(config.kwhProduction).toBe(250);
-    expect(config.startIndex).toBe(1000);
+    expect(config).not.toHaveProperty('startIndex');
+    expect(config).not.toHaveProperty('prodAnniversaire');
   });
 
   test('normalise les dates DD/MM/YYYY', () => {

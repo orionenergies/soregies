@@ -18,14 +18,11 @@ export class ResultBuilder {
   }
 
   static buildDeclarationBusinessDetails(options: {
-    startIndexSoregies?: number | undefined;
     statusFacture?: string | undefined;
   }): SoregiesBusinessDetails {
     const details: SoregiesBusinessDetails = {
       useCase: 'declaration',
-      methodeDeclaration: 'index',
     };
-    if (options.startIndexSoregies !== undefined) details.startIndexSoregies = options.startIndexSoregies;
     if (options.statusFacture) details.statusFacture = options.statusFacture;
     return details;
   }
