@@ -2,45 +2,23 @@
  * Calculs purs liés à la saisie d'index Soregies (testables sans navigateur).
  */
 
-export interface StartIndexResolution {
-  startIndex: number;
-  alerts: string[];
-}
-
 /**
- * Détermine l'ancien index à utiliser, avec les mêmes alertes que le bot EDF OA :
- * - ancien index Soregies illisible → index Airtable (`startIndex` du JSON d'entrée), sinon erreur ;
- * - ancien index Soregies présent et différent de celui d'Airtable → celui de Soregies est conservé
- *   et une alerte le signale.
+ * Alertes informatives sur l'ancien index (la production est saisie directement, l'ancien index
+ * n'est plus utilisé pour calculer le nouvel index) :
+ * - ancien index Soregies illisible ;
+ * - ancien index Soregies différent de l'index de début Airtable (`startIndex`).
  */
-export function resolveStartIndex(
+export function compareStartIndex(
   soregiesStartIndex: number | null,
   airtableStartIndex: number | undefined
-): StartIndexResolution {
-  const alerts: string[] = [];
-
+): string[] {
   if (soregiesStartIndex === null) {
-    if (airtableStartIndex === undefined) {
-      throw new Error(
-        'L\'"Ancien index" Soregies est illisible et aucun startIndex Airtable ' +
-        'n\'a été fourni dans la configuration. Impossible de remplir le formulaire.'
-      );
-    }
-    alerts.push(`Index Ancien Soregies illisible, index Airtable utilisé (${airtableStartIndex})`);
-    return { startIndex: airtableStartIndex, alerts };
+    return ['Ancien index Soregies illisible, comparaison avec l\'index Airtable impossible'];
   }
-
   if (airtableStartIndex !== undefined && soregiesStartIndex !== airtableStartIndex) {
-    if (soregiesStartIndex === 0) {
-      alerts.push(`Index de début Soregies à 0, conservé (au lieu de l'index Airtable ${airtableStartIndex})`);
-    } else {
-      alerts.push(
-        `Index de début Soregies (${soregiesStartIndex}) utilisé au lieu de l'index Airtable (${airtableStartIndex})`
-      );
-    }
+    return [`Index de début Soregies (${soregiesStartIndex}) différent de l'index Airtable (${airtableStartIndex})`];
   }
-
-  return { startIndex: soregiesStartIndex, alerts };
+  return [];
 }
 
 /** Nouvel index = ancien index + production, arrondi à 3 décimales pour éviter les artefacts flottants. */
@@ -54,31 +32,31 @@ export interface StatementDateResolution {
 }
 
 /**
- * Détermine la date de relevé à saisir.
- * - `endDate` absent : la date par défaut de Soregies (aujourd'hui) est conservée (`date: null`) ;
- * - `endDate` comprise entre les bornes `min` / `max` du champ : utilisée ;
+ * Valide la date de relevé à saisir (startDate + 1 mois) par rapport aux bornes du champ.
+ * - date absente : la date par défaut de Soregies (aujourd'hui) est conservée (`date: null`) ;
+ * - date comprise entre les bornes `min` / `max` du champ : utilisée ;
  * - sinon : date du jour conservée, avec une alerte.
  */
 export function resolveStatementDate(
-  endDate: string | undefined,
+  statementDate: string | undefined,
   minDate: string | null,
   maxDate: string | null
 ): StatementDateResolution {
-  if (!endDate) return { date: null };
+  if (!statementDate) return { date: null };
 
-  const belowMin = minDate !== null && endDate < minDate;
-  const aboveMax = maxDate !== null && endDate > maxDate;
+  const belowMin = minDate !== null && statementDate < minDate;
+  const aboveMax = maxDate !== null && statementDate > maxDate;
 
   if (belowMin || aboveMax) {
     return {
       date: null,
       alert:
-        `Date de relevé ${endDate} hors des bornes acceptées par Soregies ` +
+        `Date de relevé ${statementDate} hors des bornes acceptées par Soregies ` +
         `(${minDate ?? '…'} à ${maxDate ?? '…'}), date du jour conservée`
     };
   }
 
-  return { date: endDate };
+  return { date: statementDate };
 }
 
 /** Vérifie que la production affichée par Soregies correspond à kwhProduction (tolérance absolue en kWh). */

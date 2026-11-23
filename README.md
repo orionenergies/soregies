@@ -13,16 +13,17 @@ facture, IBAN, documents, etc.) n'est pas porté.
 | Étape | Rôle |
 |-------|------|
 | 0 | Authentification (`SOREGIES_USERNAME` / `SOREGIES_PASSWORD`) |
-| 1 | Choix du profil producteur dont le nom contient `spv` (insensible à la casse) |
+| 1 | Choix du profil dont le `.fullName` contient `spv` (insensible à la casse) sur `/profiles` |
 | 2 | Recherche du contrat dans « Mes index » (`reference` = n° de dossier, dossier lié `A/B` ou code PRM) |
 | 3 | Sélection de la ligne d'index de la période (`startDate`, même mois/année que « Date début », ligne « Ouverte » prioritaire) |
-| 4 | Remplissage du formulaire « Saisir ma production » : date de relevé, nouvel index = ancien index Soregies + `kwhProduction` |
+| 4 | Remplissage du formulaire « Saisir ma production » : date de relevé = `startDate` + 1 mois, puis `kwhProduction` dans le dernier champ de production (Soregies en déduit le nouvel index) |
 | 5 | Contrôle de la production affichée (± 10 kWh) puis, si `submit: true`, « Valider la production » + confirmation |
 
 Particularités de Soregies (SPA Angular, API Cognito) :
 
 - les jetons sont en `sessionStorage` : **aucune réutilisation de session**, le bot se reconnecte à chaque run ;
-- les deep links renvoient un 404 HTTP : la navigation passe par le menu de l'application ;
+- l'URL `/home/index` est atteinte par navigation directe, avec repli sur le menu de l'application ;
+- pour un index lié (deux dossiers), les champs de production sont en lecture seule : le bot saisit alors le nouvel index (ancien index + `kwhProduction`) ;
 - les appels API `/billing-system/contacts` et `/billing-system/index-events` sont surveillés pour détecter
   les erreurs plateforme (HTTP ≥ 500, 4xx sur `/validate`).
 
@@ -39,7 +40,6 @@ Même JSON que le bot EDF OA :
       "spv": "SPV Exemple",
       "reference": "D100200",
       "startDate": "2026-10-01",
-      "endDate": "2026-11-21",
       "kwhProduction": 250,
       "startIndex": 1000,
       "baseRecordUrl": "https://airtable.com/appXXX/tblYYY/recZZZ"
@@ -55,9 +55,9 @@ Même JSON que le bot EDF OA :
 | `spv` | nom du profil producteur à sélectionner |
 | `reference` | n° de dossier (`contractLineId`, y compris dossier lié `A/B`) ou code PRM |
 | `startDate` | identifie la période (mois + année de « Date début ») |
-| `endDate` | date de relevé (optionnelle, défaut = aujourd'hui ; alerte si hors des bornes du champ) |
+| `endDate` | accepté pour compatibilité, ignoré (la date de relevé est `startDate` + 1 mois ; si elle est hors des bornes du champ, la date du jour est conservée avec une alerte) |
 | `kwhProduction` | production à déclarer (< 1 → `PRODUCTION_NULL`) |
-| `startIndex` | index Airtable, utilisé uniquement si l'« Ancien index » Soregies est illisible (alerte si différent) |
+| `startIndex` | index Airtable, comparé à l'« Ancien index » Soregies (simple alerte si différent) |
 | `prodAnniversaire` | accepté pour compatibilité, ignoré |
 | `baseRecordUrl` | simple écho dans la réponse |
 
@@ -101,8 +101,9 @@ npm run test:e2e-mock  # tests bout en bout contre l'application réelle avec un
 
 Les tests `e2e-mock` chargent le vrai front Soregies et interceptent son API (`tests/e2e-mock/mock-soregies-api.ts`) :
 14 scénarios (succès, multi-profils, PRM, index lié, alertes, `submit=false`, chaque `issue` et `error`).
-Ils valident les sélecteurs et la logique, mais **pas** le comportement du back-end réel : aucun identifiant
-Soregies n'était disponible lors du développement, un premier run réel avec `submit: false` reste à faire.
+Le flux complet a aussi été vérifié sur le site réel avec `submit: false` (login, profil, recherche, ligne ouverte,
+formulaire rempli, cas `BTA_NOT_FOUND` et `INVOICE_NOT_FOUND`). La soumission réelle (`submit: true`) n'a pas été
+exécutée pour ne pas créer de saisie en production ; elle n'est couverte que par l'API simulée.
 
 Exemple d'appel local :
 

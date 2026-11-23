@@ -123,7 +123,7 @@ export class Bot {
     });
 
     const step4Alerts = step4Result.alerts;
-    const startIndexSoregies = step4Result.data.startIndexSoregies;
+    const startIndexSoregies = step4Result.data.startIndexSoregies ?? undefined;
 
     // Step 5 : Vérification et validation de la production
     const submissionResult: StepResult = await trackAction(this.browserManager!, 'Validation de la production', async () => {

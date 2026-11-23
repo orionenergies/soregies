@@ -7,14 +7,15 @@ import { SoregiesDeclarationConfig } from '../../validation';
 import { BUSINESS_RULES } from '../../constants';
 import { IndexDetailPage } from '../../pages/index-detail-page';
 import { HomePage } from '../../pages/home-page';
-import { computeNewIndex, resolveStartIndex, resolveStatementDate } from '../../utils/index-calc';
+import { compareStartIndex, computeNewIndex, resolveStatementDate } from '../../utils/index-calc';
+import { addMonths } from '../../utils/date-utils';
 
 /**
  * Step Déclaration : remplissage du formulaire « Saisir ma production » de Soregies.
  * La ligne d'index a déjà été ouverte par le routeur (step 3).
  *
- * Renseigne la date de relevé (endDate, si fournie et acceptable) et le nouvel index
- * (ancien index + kwhProduction). Soregies en déduit la production.
+ * Renseigne la date de relevé (startDate + 1 mois, si acceptée par le champ) puis la production
+ * (kwhProduction) dans le dernier champ du formulaire. Soregies en déduit le nouvel index.
  */
 export class RemplissageFormulaireStep {
   private readonly page: Page;
@@ -34,7 +35,7 @@ export class RemplissageFormulaireStep {
     try {
       Logger.step(stepNumber, stepName);
 
-      const { kwhProduction, startIndex: airtableStartIndex, endDate } = this.declarationConfig;
+      const { kwhProduction, startIndex: airtableStartIndex, startDate } = this.declarationConfig;
       if (kwhProduction === undefined || kwhProduction === null) {
         throw new Error('kwhProduction est requis pour remplir le formulaire de saisie d\'index');
       }
@@ -67,11 +68,11 @@ export class RemplissageFormulaireStep {
         (airtableStartIndex !== undefined ? `, Index Airtable: ${airtableStartIndex}` : '')
       );
 
-      const { startIndex, alerts } = resolveStartIndex(soregiesStartIndex, airtableStartIndex);
+      const alerts = compareStartIndex(soregiesStartIndex, airtableStartIndex);
 
       const minDate = await detailPage.dateInput.getAttribute('min');
       const maxDate = await detailPage.dateInput.getAttribute('max');
-      const statementDate = resolveStatementDate(endDate, minDate, maxDate);
+      const statementDate = resolveStatementDate(addMonths(startDate, 1), minDate, maxDate);
       if (statementDate.alert) alerts.push(statementDate.alert);
 
       if (statementDate.date) {
@@ -81,9 +82,26 @@ export class RemplissageFormulaireStep {
         Logger.fieldSuccess(`Date de relevé: ${await detailPage.readStatementDate()} (par défaut)`);
       }
 
-      const newIndex = computeNewIndex(startIndex, kwhProduction);
-      await detailPage.fillNewIndex(newIndex);
-      Logger.fieldSuccess(`Nouvel index: ${newIndex} (ancien index ${startIndex} + production ${kwhProduction})`);
+      if (await detailPage.isProductionEditable()) {
+        await detailPage.fillProduction(kwhProduction);
+        Logger.fieldSuccess(`Production: ${kwhProduction} kWh`);
+      } else {
+        // Index lié (deux dossiers) : les champs de production sont en lecture seule, calculés
+        // à partir du nouvel index (somme des anciens index + production).
+        if (soregiesStartIndex === null) {
+          throw new Error(
+            'Les champs de production sont en lecture seule (index lié) et l\'ancien index Soregies est illisible : ' +
+            'impossible de calculer le nouvel index.'
+          );
+        }
+        const computedIndex = computeNewIndex(soregiesStartIndex, kwhProduction);
+        await detailPage.fillNewIndex(computedIndex);
+        Logger.fieldSuccess(
+          `Nouvel index: ${computedIndex} (ancien index ${soregiesStartIndex} + production ${kwhProduction}, production en lecture seule)`
+        );
+      }
+      const newIndex = await detailPage.readNewIndex();
+      Logger.fieldSuccess(`Nouvel index Soregies: ${newIndex ?? 'illisible'}`);
 
       alerts.forEach(alert => Logger.warn(alert));
 
@@ -92,7 +110,7 @@ export class RemplissageFormulaireStep {
         message: 'Formulaire de saisie d\'index rempli avec succès',
         data: {
           methodeDeclaration: 'index',
-          startIndexSoregies: startIndex,
+          startIndexSoregies: soregiesStartIndex,
           newIndex
         }
       };

@@ -11,8 +11,7 @@ export type SubmissionOutcome =
  * Page Object du détail d'un index (/home/index/:id) et de son formulaire « Saisir ma production ».
  *
  * Le formulaire expose : une date de relevé, le nouvel index (cumul du compteur) et la production
- * (calculée par l'application = nouvel index - ancien index, répartie sur deux dossiers en cas
- * d'index lié). Une boîte de dialogue demande ensuite de confirmer la saisie.
+ * (dernier champ). Saisir la production met à jour le nouvel index (ancien index + production). Une boîte de dialogue demande ensuite de confirmer la saisie.
  */
 export class IndexDetailPage {
   readonly page: Page;
@@ -20,6 +19,7 @@ export class IndexDetailPage {
   readonly form: Locator;
   readonly dateInput: Locator;
   readonly newIndexInput: Locator;
+  readonly productionField: Locator;
   readonly productionInputs: Locator;
   readonly submitButton: Locator;
   readonly confirmDialog: Locator;
@@ -35,6 +35,11 @@ export class IndexDetailPage {
     this.form = page.locator('app-new-index-event form');
     this.dateInput = page.locator('app-new-index-event input.date-picker__input[type="date"]').first();
     this.newIndexInput = page.locator('app-new-index-event input#newIndex');
+    this.productionField = page
+      .locator('app-new-index-event .form-field')
+      .filter({ hasText: /\(kWh\)/ })
+      .locator('.field-control input[type="number"]:not([readonly]):not([disabled])')
+      .last();
     this.productionInputs = page
       .locator('app-new-index-event .form-field')
       .filter({ hasText: /\(kWh\)/ })
@@ -77,12 +82,35 @@ export class IndexDetailPage {
     return this.dateInput.inputValue().catch(() => '');
   }
 
-  /** Renseigne le nouvel index (cumul du compteur). */
+  /**
+   * Renseigne la production (kWh) dans le dernier champ `field-control` éditable du formulaire
+   * (en cas d'index lié, les champs de production secondaires sont en lecture seule).
+   * Soregies en déduit le nouvel index (ancien index + production).
+   */
+  async fillProduction(value: number): Promise<void> {
+    await this.productionField.waitFor({ state: 'visible', timeout: this.config.timing.elementWaitTimeout });
+    await this.productionField.fill(value.toString());
+    await this.productionField.blur();
+    await this.page.waitForTimeout(500);
+  }
+
+  /** Indique si la production est saisissable (champ éditable) ; en lecture seule pour un index lié. */
+  async isProductionEditable(timeoutMs: number = 3000): Promise<boolean> {
+    return this.productionField.waitFor({ state: 'visible', timeout: timeoutMs }).then(() => true).catch(() => false);
+  }
+
+  /** Renseigne le nouvel index (cumul du compteur) ; la production est alors recalculée par Soregies. */
   async fillNewIndex(value: number): Promise<void> {
     await this.newIndexInput.waitFor({ state: 'visible', timeout: this.config.timing.elementWaitTimeout });
     await this.newIndexInput.fill(value.toString());
     await this.newIndexInput.blur();
-    await this.page.waitForTimeout(300);
+    await this.page.waitForTimeout(500);
+  }
+
+  /** Nouvel index calculé par Soregies après saisie de la production (null si illisible). */
+  async readNewIndex(): Promise<number | null> {
+    const raw = await this.newIndexInput.inputValue().catch(() => '');
+    return parseLocalizedNumber(raw);
   }
 
   /** Somme des champs « Énergie produite » (kWh), recalculés par l'application. */

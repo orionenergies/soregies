@@ -34,3 +34,17 @@ export function daysBetween(a: string, b: string): number {
 export function normalizeReference(value: string): string {
   return value.replace(/[\s\u00a0]+/g, '').toUpperCase();
 }
+
+/**
+ * Ajoute `months` mois à une date ISO en conservant le jour, ramené au dernier jour du mois cible
+ * s'il n'existe pas (ex: 2026-01-31 + 1 mois = 2026-02-28).
+ */
+export function addMonths(isoDate: string, months: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number) as [number, number, number];
+  const target = new Date(Date.UTC(year, month - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  const resultDay = Math.min(day, lastDay);
+  const mm = String(target.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(resultDay).padStart(2, '0');
+  return `${target.getUTCFullYear()}-${mm}-${dd}`;
+}

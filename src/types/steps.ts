@@ -28,8 +28,8 @@ export interface IndexRow {
 export interface FormFillResult extends StepResult {
   data: {
     methodeDeclaration: 'index';
-    startIndexSoregies: number;
-    newIndex: number;
+    startIndexSoregies: number | null;
+    newIndex: number | null;
   };
 }
 

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { IndexRow } from '../../src/types';
 import { selectIndexRow, rowMatchesReference, isOpenStatus } from '../../src/utils/index-matcher';
-import { resolveStartIndex, computeNewIndex, resolveStatementDate, isWithinTolerance } from '../../src/utils/index-calc';
-import { normalizeReference, monthKey } from '../../src/utils/date-utils';
+import { compareStartIndex, computeNewIndex, resolveStatementDate, isWithinTolerance } from '../../src/utils/index-calc';
+import { normalizeReference, monthKey, addMonths } from '../../src/utils/date-utils';
 import { parseLocalizedNumber } from '../../src/pages/index-detail-page';
 
 const row = (overrides: Partial<IndexRow>): IndexRow => ({
@@ -48,19 +48,11 @@ test.describe('index-matcher', () => {
 });
 
 test.describe('index-calc', () => {
-  test('resolveStartIndex : index Soregies conservé, alerte si différent', () => {
-    expect(resolveStartIndex(1000, 1000)).toEqual({ startIndex: 1000, alerts: [] });
-    expect(resolveStartIndex(1000, undefined).alerts).toHaveLength(0);
-    const different = resolveStartIndex(1000, 900);
-    expect(different.startIndex).toBe(1000);
-    expect(different.alerts).toHaveLength(1);
-  });
-
-  test('resolveStartIndex : repli sur Airtable ou erreur', () => {
-    const fallback = resolveStartIndex(null, 500);
-    expect(fallback.startIndex).toBe(500);
-    expect(fallback.alerts).toHaveLength(1);
-    expect(() => resolveStartIndex(null, undefined)).toThrow();
+  test('compareStartIndex : alerte seulement si illisible ou différent', () => {
+    expect(compareStartIndex(1000, 1000)).toEqual([]);
+    expect(compareStartIndex(1000, undefined)).toEqual([]);
+    expect(compareStartIndex(1000, 900)).toHaveLength(1);
+    expect(compareStartIndex(null, 900)).toHaveLength(1);
   });
 
   test('computeNewIndex évite les artefacts flottants', () => {
@@ -86,6 +78,13 @@ test.describe('utilitaires', () => {
   test('normalizeReference / monthKey', () => {
     expect(normalizeReference(' d 100-200 ')).toBe(normalizeReference('D100-200'));
     expect(monthKey('2026-10-15')).toBe(monthKey('2026-10-01'));
+  });
+
+  test('addMonths : +1 mois, jour ramené en fin de mois, changement d\'année', () => {
+    expect(addMonths('2026-10-01', 1)).toBe('2026-11-01');
+    expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
   });
 
   test('parseLocalizedNumber', () => {

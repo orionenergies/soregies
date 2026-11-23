@@ -55,7 +55,6 @@ function formData(invoice: Record<string, unknown>, submit = true): BotFormData 
         reference: 'D100200',
         spv: 'SOLARION 11',
         startDate: '2026-10-01',
-        endDate: isoToday(-2),
         kwhProduction: 250,
         baseRecordUrl: 'https://airtable.com/appXXX/tblYYY/recZZZ',
         ...invoice
@@ -94,7 +93,7 @@ function baseScenario(overrides: Partial<MockScenario> = {}): MockScenario {
 test.describe.configure({ mode: 'serial', timeout: 240000 });
 
 test.describe('Bot Soregies - déclaration de production (API simulée)', () => {
-  test('succès : saisie d\'index soumise avec ancien index + kwhProduction', async () => {
+  test('succès : saisie de la production soumise (date = startDate + 1 mois)', async () => {
     const { result, validations } = await runWithScenario(baseScenario(), formData({}));
 
     expect(result.result).toBe('success');
@@ -115,7 +114,7 @@ test.describe('Bot Soregies - déclaration de production (API simulée)', () => 
       id: 501,
       indexValue: 1250,
       production: 250,
-      indexDate: isoToday(-2)
+      indexDate: '2026-11-01'
     });
   });
 
@@ -160,7 +159,7 @@ test.describe('Bot Soregies - déclaration de production (API simulée)', () => 
     const { result } = await runWithScenario(baseScenario(), formData({ startIndex: 900 }));
 
     expect(result.result).toBe('success');
-    expect(result.message).toContain('Index de début Soregies (1000) utilisé au lieu de l\'index Airtable (900)');
+    expect(result.message).toContain('Index de début Soregies (1000) différent de l\'index Airtable (900)');
   });
 
   test('submit=false : formulaire prêt, aucune soumission', async () => {

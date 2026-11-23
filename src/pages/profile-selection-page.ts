@@ -60,12 +60,12 @@ export class ProfileSelectionPage {
   }
 
   /**
-   * Retourne les profils dont le nom contient le SPV (insensible à la casse).
+   * Retourne les profils dont le nom (`.fullName`) contient le SPV (insensible à la casse).
    * Équivalent de `getProducerRows` côté EDF OA.
    */
   async getProfileRows(spv: string): Promise<Locator> {
     const pattern = new RegExp(escapeRegExp(spv.trim()).replace(/\s+/g, '\\s+'), 'i');
-    const rows = this.profiles.filter({ hasText: pattern });
+    const rows = this.profiles.filter({ has: this.page.locator('.fullName', { hasText: pattern }) });
 
     await rows.first().waitFor({
       state: 'visible',
