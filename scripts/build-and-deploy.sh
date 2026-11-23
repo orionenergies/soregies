@@ -451,6 +451,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --timeout 300 \
   --max-instances 10 \
   --min-instances 0 \
+  --concurrency 1 \
   --no-cpu-throttling \
   --cpu-boost \
   --execution-environment=gen2 \

@@ -111,8 +111,26 @@ curl -X POST localhost:3000/run -H 'Content-Type: application/json' -d @test-dat
 
 ## Déploiement (Cloud Run)
 
-`scripts/build-and-deploy.sh` construit l'image Docker (`mcr.microsoft.com/playwright:v1.57.0-noble`) et déploie
-le service `orion-bot-soregies`. Secrets Secret Manager : `soregies-username`, `soregies-password`, `api-key`.
+Service `orion-bot-soregies` (projet `orion-bots`, région `europe-west1`) :
+
+- **URL** : `https://orion-bot-soregies-958971523870.europe-west1.run.app`
+- `GET  /health` : sans authentification
+- `POST /run` : header `x-api-key` (secret `api-key`, partagé avec les autres bots) et corps JSON décrit plus haut
+
+```bash
+curl -X POST https://orion-bot-soregies-958971523870.europe-west1.run.app/run \
+  -H 'Content-Type: application/json' \
+  -H "x-api-key: $API_KEY" \
+  -d @test-data.json
+```
+
+Configuration : 2 vCPU / 2 Gi, timeout 300 s, 0 à 10 instances, **concurrence 1** (une requête par instance,
+les logs du bot étant globaux au processus). Secrets Secret Manager : `soregies-username`, `soregies-password`, `api-key`.
+
+`scripts/build-and-deploy.sh` construit l'image Docker (`mcr.microsoft.com/playwright:v1.57.0-noble`) en local et
+déploie le service. Sans Docker local, l'image peut être construite avec Cloud Build
+(`gcloud builds submit . --tag europe-west1-docker.pkg.dev/orion-bots/orion-bot-images/orion-bot-soregies:<tag> --region europe-west1`)
+puis déployée avec `gcloud run deploy` en reprenant les options ci-dessus.
 
 ## Limites connues
 
